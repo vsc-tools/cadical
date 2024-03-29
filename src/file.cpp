@@ -11,7 +11,21 @@ extern "C" {
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+#include <io.h>
+#include <windows.h>
+#define access _access
+#define W_OK 2
+#define R_OK 4
+#ifndef _S_ISTYPE
+#define _S_ISTYPE(mode, mask) (((mode) & _S_IFMT) == (mask))
+#define S_ISDIR(mode) _S_ISTYPE((mode), _S_IFDIR)
+// FIFO not supported on Windows
+#define S_ISFIFO(mode) 0
+#endif
+#else
 #include <unistd.h>
+#endif
 }
 
 #ifndef _WIN32
@@ -213,6 +227,9 @@ void File::delete_str_vector (std::vector<char *> &argv) {
     delete[] str;
 }
 
+// Reading and writing compressed data is not supported on Windows
+#ifndef _WIN32
+
 FILE *File::open_pipe (Internal *internal, const char *fmt,
                        const char *path, const char *mode) {
 #ifdef QUIET
@@ -255,7 +272,6 @@ FILE *File::read_pipe (Internal *internal, const char *fmt, const int *sig,
   return open_pipe (internal, fmt, path, "r");
 }
 
-#ifndef _WIN32
 
 FILE *File::write_pipe (Internal *internal, const char *command,
                         const char *path, int &child_pid) {
@@ -321,6 +337,8 @@ File *File::write (Internal *internal, FILE *f, const char *n) {
 File *File::read (Internal *internal, const char *path) {
   FILE *file;
   int close_input = 2;
+// Directly-reading compressed input not supported on Windows
+#ifndef _WIN32
   if (has_suffix (path, ".xz")) {
     file = read_pipe (internal, "xz -c -d %s", xzsig, path);
     if (!file)
@@ -341,7 +359,9 @@ File *File::read (Internal *internal, const char *path) {
     file = read_pipe (internal, "7z x -so %s 2>/dev/null", sig7z, path);
     if (!file)
       goto READ_FILE;
-  } else {
+  } else 
+#endif /* !_WIN32 */
+  {
   READ_FILE:
     file = read_file (internal, path);
     close_input = 1;
@@ -392,12 +412,12 @@ void File::close (bool print) {
       MSG ("closing file '%s'", name ());
     fclose (file);
   }
+#ifndef _WIN32
   if (close_file == 2) {
     if (print)
       MSG ("closing input pipe to read '%s'", name ());
     pclose (file);
   }
-#ifndef _WIN32
   if (close_file == 3) {
     if (print)
       MSG ("closing output pipe to write '%s'", name ());

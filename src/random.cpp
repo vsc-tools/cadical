@@ -81,11 +81,15 @@ static uint64_t hash_machine_identifier () {
 #ifndef __WIN32
 
 extern "C" {
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <ifaddrs.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 }
 
 #endif
@@ -158,13 +162,21 @@ static uint64_t hash_time () {
 
 extern "C" {
 #include <sys/types.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
+#endif
 }
 
 namespace CaDiCaL {
 
 static uint64_t hash_process () {
+#ifdef _WIN32
+  uint64_t res = GetProcessId(GetCurrentProcess());
+#else
   uint64_t res = getpid ();
+#endif
   PRINT_HASH (res);
   return res;
 }

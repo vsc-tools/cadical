@@ -1,6 +1,10 @@
 #ifndef _internal_hpp_INCLUDED
 #define _internal_hpp_INCLUDED
 
+#ifdef _WIN32
+#define __WIN32
+#endif
+
 /*------------------------------------------------------------------------*/
 
 // Wrapped build specific headers which should go first.
@@ -23,7 +27,9 @@
 // Less common 'C' header.
 
 extern "C" {
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 }
 
 /*------------------------------------------------------------------------*/

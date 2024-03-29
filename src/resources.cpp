@@ -27,10 +27,14 @@ extern "C" {
 
 #else
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/resource.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
+#endif
+#include <sys/types.h>
 
 #endif
 
